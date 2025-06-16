@@ -1,51 +1,57 @@
+# 🧩 pyspark_essential_funcs.py
+
+This module defines **46 essential PySpark DataFrame functions** with clear code examples, explanations, and guidance for practical use. It’s designed to be importable and usable in notebooks, scripts, or production pipelines.
+
+```python
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col, lit, expr, concat, substring, trim, upper, lower,
     current_date, date_add, datediff, year, month,
     array, explode, size, array_contains, sort_array,
-    when, coalesce, monotonically_increasing_id,
+    when, coalesce, isnull,
     count, sum as _sum, avg, max as _max, min as _min,
-    isnull
+    monotonically_increasing_id
 )
 
 def create_spark(app_name="Essentials"):
-    """Initialize Spark session."""
+    """🛠 Initialize Spark session with ERROR log level."""
     spark = SparkSession.builder.appName(app_name).getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
     return spark
 
 def create_sample_df(spark):
-    """Create sample DataFrame."""
+    """📥 Create a simple sample DataFrame for testing/demonstration."""
     data = [("Alice", 34), ("Bob", None), ("Carol", 29)]
-    cols = ["name", "age"]
-    return spark.createDataFrame(data, schema=cols)
+    return spark.createDataFrame(data, ["name", "age"])
 
+# 1. select – choose columns
 def select_columns(df):
-    "1. select – choose columns"
+    """Extract 'name' column."""
     return df.select("name")
 
+# 2. filter – keep rows with age > 30
 def filter_rows(df):
-    "2. filter – keep rows meeting condition"
     return df.filter(col("age") > 30)
 
+# 3. withColumn – add derived column
 def with_new_column(df):
-    "3. withColumn – add derived column"
+    """Add a boolean 'is_senior' flag for age > 30."""
     return df.withColumn("is_senior", col("age") > 30)
 
+# 4. drop – remove the 'age' column
 def drop_column(df):
-    "4. drop – remove a column"
     return df.drop("age")
 
+# 5. withColumnRenamed – rename column
 def rename_column(df):
-    "5. alias/withColumnRenamed – rename a column"
     return df.withColumnRenamed("name", "full_name")
 
+# 6. count – return number of rows in DataFrame
 def count_rows(df):
-    "6. count – count rows"
     return df.count()
 
+# 7–11. groupBy + agg(count, sum, avg, max, min)
 def group_and_aggregate(df):
-    "7‑11. groupBy + agg(count, sum, avg, max, min)"
     return df.groupBy("name").agg(
         count("*").alias("cnt"),
         avg("age").alias("avg_age"),
@@ -54,131 +60,134 @@ def group_and_aggregate(df):
         _min("age").alias("min_age")
     )
 
+# 12. concat – merge string columns
 def concat_string(df):
-    "12. concat – merge string columns"
     return df.withColumn("greeting", concat(col("name"), lit("!")))
 
+# 13. substring – extract substring
 def substring_col(df):
-    "13. substring – get part of string"
     return df.withColumn("short", substring(col("name"), 1, 2))
 
+# 14. trim – remove surrounding whitespace
 def trim_string(df):
-    "14. trim – remove whitespace"
     return df.withColumn("trimmed", trim(col("name")))
 
+# 15–16. upper & lower string case conversion
 def upper_lower(df):
-    "15‑16. upper & lower – case conversion"
-    return df.withColumn("upper", upper(col("name"))).withColumn("lower", lower(col("name")))
+    return df.withColumn("upper", upper(col("name"))) \
+             .withColumn("lower", lower(col("name")))
 
+# 17. current_date – add column with today’s date
 def add_current_date(df):
-    "17. current_date – today's date"
     return df.withColumn("today", current_date())
 
+# 18. date_add – add 30 days to 'today'
 def add_days(df):
-    "18. date_add – add days to a date"
     return df.withColumn("later", date_add(col("today"), 30))
 
+# 19. datediff – days between dates
 def datediff_col(df):
-    "19. datediff – days between dates"
     return df.withColumn("delta", datediff(col("later"), col("today")))
 
+# 20–21. year & month extraction
 def extract_date_parts(df):
-    "20‑21. year & month"
-    return df.withColumn("yr", year(col("today"))).withColumn("mo", month(col("today")))
+    return df.withColumn("yr", year(col("today"))) \
+             .withColumn("mo", month(col("today")))
 
+# 22. array – build array from columns
 def make_array(df):
-    "22. array – combine columns into an array"
     return df.withColumn("arr", array(col("name"), col("age")))
 
+# 23. explode – expand array columns into multiple rows
 def explode_array(df):
-    "23. explode – expand array into rows"
-    return df.withColumn("arr", array(col("name"), lit("ZZ"))).select("name", explode("arr"))
+    return df.withColumn("arr", array(col("name"), lit("ZZ"))) \
+             .select("name", explode("arr"))
 
+# 24. size – compute array length
 def array_size(df):
-    "24. size – length of array"
     return df.withColumn("len", size(col("arr")))
 
+# 25. array_contains – check membership
 def array_contains_col(df):
-    "25. array_contains – test array membership"
     return df.withColumn("has_Alice", array_contains(col("arr"), "Alice"))
 
+# 26. sort_array – sort elements in array
 def sort_array_col(df):
-    "26. sort_array – sort elements"
     return df.withColumn("arr_sorted", sort_array(col("arr")))
 
+# 27–28. when + otherwise – conditional column creation
 def conditional_when(df):
-    "27‑28. when + otherwise"
     return df.withColumn("cat", when(col("age") > 30, "Old").otherwise("Young"))
 
+# 29. expr CASE WHEN – SQL-style conditional logic
 def expr_case(df):
-    "29. expr – SQL CASE WHEN"
-    return df.withColumn("grade", expr("CASE WHEN age>30 THEN 'B' ELSE 'A' END"))
+    return df.withColumn("grade", expr("CASE WHEN age > 30 THEN 'B' ELSE 'A' END"))
 
+# 30. coalesce – choose first non-null
 def coalesce_col(df):
-    "30. coalesce – pick first non-null"
     return df.withColumn("age2", coalesce(col("age"), lit(0)))
 
+# 31. isnull – detect nulls
 def isnull_col(df):
-    "31. isnull – test nulls"
     return df.withColumn("isNull", isnull(col("age")))
 
+# 32. lit – literal column
 def lit_column(df):
-    "32. lit – add literal as column"
     return df.withColumn("const", lit(1))
 
+# 33. expr IF – inline conditional
 def expr_if(df):
-    "33. expr IF – inline conditional"
-    return df.withColumn("discount", expr("if(age>30, 0.1, 0)"))
+    return df.withColumn("discount", expr("if(age > 30, 0.1, 0)"))
 
+# 34. na.drop – drop rows with nulls
 def dropna(df):
-    "34. na.drop – drop null rows"
     return df.na.drop()
 
+# 35. na.fill – fill null values
 def fillna(df):
-    "35. na.fill – fill nulls"
     return df.na.fill({"age": 0})
 
+# 36. distinct – deduplicate rows
 def distinct_rows(df):
-    "36. distinct – remove dupes"
     return df.distinct()
 
+# 37. sort – sort by age descending
 def sort_rows(df):
-    "37. sort/orderBy – sort DataFrame"
     return df.sort(col("age").desc())
 
-def repartition_df(df):
-    "38. repartition – change partitions"
-    return df.repartition(4)
+# 38. repartition – adjust number of partitions
+def repartition_df(df, num=4):
+    return df.repartition(num)
 
+# 39. cache – persist DataFrame in-memory
 def cache_df(df):
-    "39. cache – cache DataFrame"
     df.cache()
     return df
 
+# 40. repartitionByRange – range partitioning
 def repartition_range(df):
-    "40. repartitionByRange"
     return df.repartitionByRange("age")
 
+# 41. monotonically_increasing_id – add unique IDs
 def monotonic_id(df):
-    "41. monotonically_increasing_id – add unique ID"
     return df.withColumn("id", monotonically_increasing_id())
 
+# 42. selectExpr – select using SQL expressions
 def select_expr(df):
-    "42. selectExpr – SQL expression selection"
-    return df.selectExpr("name", "age*2 as age2")
+    return df.selectExpr("name", "age * 2 as age2")
 
+# 43. alias – rename DataFrame for joins
 def alias_df(df):
-    "43. alias – alias DataFrame"
     return df.alias("t")
 
+# 44. union – stack DataFrames vertically
 def union_df(df):
-    "44. union – stack DataFrames"
     return df.union(df)
 
+# 45. intersect – find common rows
 def intersect_df(df):
-    "45. intersect – find common rows"
     return df.intersect(df)
 
+# 46. exceptAll – exclude common rows
 def except_df(df):
-    "46. except – all but common rows"
     return df.exceptAll(df)
